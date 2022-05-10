@@ -25,7 +25,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/kubasiemion/ibmdilithium/x509/pkix"
+	"crypto/x509/pkix"
 
 	// Explicitly import these for their crypto.RegisterHash init side-effects.
 	// Keep these as blank imports, even if they're imported above.

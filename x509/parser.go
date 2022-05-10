@@ -22,7 +22,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/kubasiemion/ibmdilithium/x509/pkix"
+	"crypto/x509/pkix"
 
 	"github.com/kubasiemion/ibmdilithium/ibmdilithium"
 	"golang.org/x/crypto/cryptobyte"
