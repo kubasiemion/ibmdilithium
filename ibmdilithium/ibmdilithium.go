@@ -70,7 +70,7 @@ func Verify(pubkey, digest, signature []byte) (*pb.VerifyResponse, error) {
 	return verResp, err
 }
 
-func GenerateKeyPair() (*pb.GenerateKeyPairResponse, error) {
+func GenerateKeyPair() (*DILPrivateKey, error) {
 	cryptoClient := CryptoClient()
 	defer Close()
 	// Setup PQC parameter and key templates
@@ -103,8 +103,7 @@ func GenerateKeyPair() (*pb.GenerateKeyPairResponse, error) {
 		}
 
 	}
-
-	return generateDilKeyPairResponse, err
+	return PrivKeyFromBytes(generateDilKeyPairResponse.PrivKeyBytes, generateDilKeyPairResponse.PubKeyBytes)
 }
 
 func SignDilith(privkey []byte, message []byte, hash crypto.Hash) (*pb.SignResponse, error) {

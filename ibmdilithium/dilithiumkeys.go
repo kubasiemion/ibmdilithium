@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -13,8 +14,11 @@ import (
 var SHAKE256WithDilithiumOID = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 3, 20}
 
 type DILPublicKey struct {
-	OID   asn1.ObjectIdentifier
 	Bytes []byte
+}
+
+func (dilp *DILPublicKey) GetOID() asn1.ObjectIdentifier {
+	return OIDDilithiumHigh
 }
 
 func PrivKeyFromBytes(privb, pub []byte) (*DILPrivateKey, error) {
@@ -24,7 +28,7 @@ func PrivKeyFromBytes(privb, pub []byte) (*DILPrivateKey, error) {
 	priv := new(DILPrivateKey)
 	priv.OID = OIDDilithiumHigh
 	priv.Bytes = privb
-	priv.PublicKey = &DILPublicKey{OID: priv.OID, Bytes: pub}
+	priv.PublicKey = &DILPublicKey{Bytes: pub}
 	return priv, nil
 
 }
@@ -72,20 +76,17 @@ func (dil *DILPublicKey) Equal(pub crypto.PublicKey) bool {
 
 }
 
-// pkcs8 reflects an ASN.1, PKCS #8 PrivateKey. See
-type pkcs8 struct {
-	Version    int
-	Algo       pkix.AlgorithmIdentifier
-	PrivateKey []byte
-	// CMS-style Attribute is SEQUENCE { attrType OBJECT IDENTIFIER, attrValue SET OF ANY --DEFINED BY type-- }
-	Attribute0 []byte `asn1:"optional,tag:0"`
-	Attribute1 []byte `asn1:"optional,tag:1"`
+func (dil *DILPublicKey) String() string {
+	s := "Dilithium Round3 High Security Public Key\n"
+	s += hex.EncodeToString(dil.Bytes[:40])
+	s += "..."
+	return s
 }
 
 func MarshalPkcs8Pem(dil *DILPrivateKey) ([]byte, error) {
-	p8 := pkcs8{}
+	p8 := Pkcs8{}
 	p8.PrivateKey = dil.Bytes
-	p8.Attribute0 = dil.PublicKey.Bytes
+	p8.Attribute1 = asn1.BitString{Bytes: dil.PublicKey.Bytes}
 	p8.Version = 1
 	p8.Algo = pkix.AlgorithmIdentifier{Algorithm: dil.OID}
 	b, err := asn1.Marshal(p8)
@@ -103,7 +104,7 @@ func MarshalPkcs8Pem(dil *DILPrivateKey) ([]byte, error) {
 //This assumes that the PublicKey bytes are stored as Attribute 0
 func UnmarshalPkcs8Pem(pembytes []byte) (*DILPrivateKey, error) {
 	bl, _ := pem.Decode(pembytes)
-	p8 := new(pkcs8)
+	p8 := new(Pkcs8)
 	_, err := asn1.Unmarshal(bl.Bytes, p8)
 	if err != nil {
 		return nil, err
@@ -112,4 +113,13 @@ func UnmarshalPkcs8Pem(pembytes []byte) (*DILPrivateKey, error) {
 		return nil, fmt.Errorf("wrong OID: %s", p8.Algo.Algorithm)
 	}
 	return PrivKeyFromBytes(p8.PrivateKey, p8.Attribute0)
+}
+
+type Pkcs8 struct {
+	Version    int
+	Algo       pkix.AlgorithmIdentifier
+	PrivateKey []byte
+	// CMS-style Attribute is SEQUENCE { attrType OBJECT IDENTIFIER, attrValue SET OF ANY --DEFINED BY type-- }
+	Attribute0 []byte         `asn1:"optional,tag:0"`
+	Attribute1 asn1.BitString `asn1:"optional,tag:1"`
 }

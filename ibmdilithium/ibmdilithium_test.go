@@ -4,32 +4,41 @@ import (
 	"crypto"
 	"fmt"
 	"testing"
+
+	grep11 "github.com/IBM-Cloud/hpcs-grep11-go/grpc"
 )
 
 func TestDilithium(t *testing.T) {
 
-	resp, err := GenerateKeyPair()
+	var err error
+
+	npriv, err := GenerateKeyPair()
+	if err != nil {
+		t.Error(err)
+	}
+
+	b, err := MarshalPkcs8Pem(npriv)
 	if err != nil {
 		t.Error(err)
 	} else {
-		npriv, _ := PrivKeyFromBytes(resp.PrivKeyBytes, resp.PubKeyBytes)
-		b, err := MarshalPkcs8Pem(npriv)
-		if err != nil {
-			t.Error(err)
-		} else {
-			fmt.Println(string(b))
-		}
-		npriv2, err := UnmarshalPkcs8Pem(b)
-		if err != nil {
-			t.Error(err)
-		} else {
-			fmt.Println(len(npriv2.PublicKey.Bytes))
-		}
-		sresp, _ := SignDilith(npriv2.Bytes, []byte("Dupa Jasio"), crypto.SHA256)
-		_, err = VerifyDilithiumSignature(npriv.PublicKey.Bytes, []byte("Dupa Jasio"), sresp.Signature, crypto.SHA256)
-		fmt.Println("Verification:", err)
-		if err != nil {
-			t.Error(err)
-		}
+		fmt.Sprintln(string(b))
 	}
+	npriv2, err := UnmarshalPkcs8Pem(b)
+	if err != nil {
+		t.Error(err)
+	} else {
+		fmt.Sprintln(len(npriv2.PublicKey.Bytes))
+	}
+	var sresp *grep11.SignResponse
+
+	sresp, err = SignDilith(npriv2.Bytes, []byte("Dupa Jasio"), crypto.SHA256)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = VerifyDilithiumSignature(npriv.PublicKey.Bytes, []byte("Dupa Jasio"), sresp.Signature, crypto.SHA256)
+	fmt.Println("Verification error:", err)
+	if err != nil {
+		t.Error(err)
+	}
+
 }
