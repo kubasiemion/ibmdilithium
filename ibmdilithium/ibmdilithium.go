@@ -118,11 +118,15 @@ func SignDilith(privkey []byte, message []byte, hash crypto.Hash) (*pb.SignRespo
 	if err != nil {
 		return nil, err
 	}
-
-	h := hash.New()
-	h.Write(message)
-	//signData := sha256.Sum256(message)
-	signData := h.Sum(nil)
+	var signData []byte
+	if hash == 0 {
+		signData = message
+	} else {
+		h := hash.New()
+		h.Write(message)
+		//signData := sha256.Sum256(message)
+		signData = h.Sum(nil)
+	}
 	signRequest := &pb.SignRequest{
 		State: signInitResponse.State,
 		Data:  signData[:],
